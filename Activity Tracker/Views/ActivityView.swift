@@ -46,6 +46,7 @@ struct ActivityView: View {
 
     var innerRadius: MarkDimension = .ratio(0.6)
     var outerRadius: MarkDimension = .ratio(1.05)
+    var outerRadiusActive: MarkDimension = .ratio(0.95)
     var angularInset: CGFloat = 1
 
     // MARK: - Activity Chart
@@ -57,12 +58,16 @@ struct ActivityView: View {
             } else {
                 Chart {
                     ForEach(activityVM.activities) { activity in
+                        let isSelected: Bool = activity.name == currentActivity?.name
                         SectorMark(
                             angle: .value("Activites", activity.hoursPerDay),
                             innerRadius: innerRadius,
-                            outerRadius: outerRadius,
+                            outerRadius: isSelected ? outerRadius : outerRadiusActive,
                             angularInset: angularInset
                         )
+                        .cornerRadius(10)
+                        .foregroundStyle(by: .value("activity", activity.name))
+                        .opacity(isSelected ? 1 : 0.8)
                     }
                 }
                 .chartAngleSelection(value: $selectCount)
@@ -103,7 +108,7 @@ struct ActivityView: View {
                         .monospacedDigit()
                         .foregroundStyle(.secondary)
                 }
-                .onChange(of: currentHoursPerDay) { _, newValue in
+                .onChange(of: currentHoursPerDay) { _, _ in
                     if let index = activityVM.activities.firstIndex(where: { $0.name.lowercased() == currentActivity.name.lowercased() }) {
                         activityVM.activities[index].hoursPerDay = currentHoursPerDay
                     }
@@ -111,10 +116,12 @@ struct ActivityView: View {
             }
 
             Button("Add") {
-                let newActivity = activityVM.add(name: newName, hoursPerDay: currentHoursPerDay)
+                let newActivity = activityVM.add(name: newName, hoursPerDay: 0)
+                currentHoursPerDay = 0
                 newName = ""
                 guard let newActivity else {
                     print("Invalid name")
+                    currentActivity = newActivity
                     return
                 }
 
@@ -127,13 +134,21 @@ struct ActivityView: View {
             EditButton()
                 .onChange(of: selectCount) { _, newValue in
                     guard let newValue else { return }
-                    withAnimation {}
+                    withAnimation {
+                        getSelected(value: newValue)
+                    }
                 }
         }
     }
 
     private func getSelected(value: Int) {
-        // TODO: implement
+        // Finds activity, accumulating total hours
+        var cumulativeTotal = 0.0
+        let activity = activityVM.activities.first(where: {
+            cumulativeTotal += $0.hoursPerDay
+            return Int(cumulativeTotal) >= value
+        })
+        currentActivity = activity
     }
 }
 
