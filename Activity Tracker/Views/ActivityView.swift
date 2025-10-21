@@ -11,7 +11,6 @@ struct ActivityView: View {
     // MARK: - Constants
 
     let hoursPerDayStep: Double = 0.2
-
     // MARK: - Data Initialization
 
     @Query(sort: \ActivityModel.name, order: .forward)
@@ -53,20 +52,25 @@ struct ActivityView: View {
     // MARK: - Activity Chart
 
     var body: some View {
-        Chart {
-            ForEach(activities) { activity in
-                SectorMark(
-                    angle: .value("Activites", activity.hoursPerDay),
-                    innerRadius: innerRadius,
-                    outerRadius: outerRadius,
-                    angularInset: angularInset
-                )
+        if activities.isEmpty {
+            ContentUnavailableView("Enter an Activity", systemImage: "list.dash")
+        } else {
+            Chart {
+                ForEach(activities) { activity in
+                    SectorMark(
+                        angle: .value("Activites", activity.hoursPerDay),
+                        innerRadius: innerRadius,
+                        outerRadius: outerRadius,
+                        angularInset: angularInset
+                    )
+                }
             }
+            .chartAngleSelection(value: $selectCount)
         }
-        .chartAngleSelection(value: $selectCount)
-
         List(activities) { activity in
             ActivityRow(activity: activity)
+                .contentShape(Rectangle())
+                .listRowBackground(currentActivity?.name == activity.name ? AppTheme.activeRowBackground : AppTheme.clearRowBackground)
                 .onTapGesture {
                     withAnimation {
                         currentActivity = activity
@@ -78,7 +82,7 @@ struct ActivityView: View {
 
         TextField("Enter new activity", text: $newName)
             .padding()
-            .background(Color.accentColor.gradient.opacity(0.3))
+            .background(AppTheme.activeFillStyle)
             .clipShape(RoundedRectangle(cornerRadius: 10))
             .shadow(color: .gray, radius: 2, x: 0, y: 2)
 
