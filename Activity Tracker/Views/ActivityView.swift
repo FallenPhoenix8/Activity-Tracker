@@ -92,8 +92,10 @@ struct ActivityView: View {
 
         if let currentActivity {
             Slider(value: $currentHoursPerDay, in: 0 ... maxHoursOfSelected, step: hoursPerDayStep)
-                .onChange(of: currentHoursPerDay) { _, _ in
-                    // TODO: Implement changing of hours per day in model
+                .onChange(of: currentHoursPerDay) { _, newValue in
+                    if let index = activities.firstIndex(where: {$0.name == currentActivity.name}) {
+                        activities[index].hoursPerDay = newValue
+                    }
                 }
         }
 
