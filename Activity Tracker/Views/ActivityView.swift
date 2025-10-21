@@ -42,13 +42,6 @@ struct ActivityView: View {
         remainingHours + currentHoursPerDay
     }
 
-    // MARK: - Chart Properties
-
-    var innerRadius: MarkDimension = .ratio(0.6)
-    var outerRadius: MarkDimension = .ratio(1.05)
-    var outerRadiusActive: MarkDimension = .ratio(0.95)
-    var angularInset: CGFloat = 1
-
     // MARK: - Activity Chart
 
     var body: some View {
@@ -56,33 +49,7 @@ struct ActivityView: View {
             if activityVM.activities.isEmpty {
                 ContentUnavailableView("Enter an Activity", systemImage: "list.dash")
             } else {
-                Chart {
-                    ForEach(activityVM.activities) { activity in
-                        let isSelected: Bool = activity.name == currentActivity?.name
-                        SectorMark(
-                            angle: .value("Activites", activity.hoursPerDay),
-                            innerRadius: innerRadius,
-                            outerRadius: isSelected ? outerRadius : outerRadiusActive,
-                            angularInset: angularInset
-                        )
-                        .cornerRadius(10)
-                        .foregroundStyle(by: .value("activity", activity.name))
-                        .opacity(isSelected ? 1 : 0.8)
-                    }
-                }
-                .chartAngleSelection(value: $selectCount)
-                .chartBackground { _ in
-                    VStack {
-                        if let currentActivity {
-                            Image(systemName: "figure.walk")
-                                .imageScale(.large)
-                                .foregroundStyle(AppTheme.activeFillStyle)
-
-                            let truncatedName = String(currentActivity.name.prefix(11))
-                            Text(truncatedName == currentActivity.name ? truncatedName : "\(truncatedName)...")
-                        }
-                    }
-                }
+                ActivitiesChart(activites: activityVM.activities, currentActivity: currentActivity, selectCount: $selectCount)
             }
             List {
                 ForEach(activityVM.activities) { activity in
@@ -109,20 +76,22 @@ struct ActivityView: View {
                 .shadow(color: .gray, radius: 2, x: 0, y: 2)
 
             if let currentActivity {
-                Slider(
-                    value: $currentHoursPerDay,
-                    in: 0 ... maxHoursOfSelected,
-                    step: 0.5
-                ) {
-                    Text("Hours for \(currentActivity.name)")
-                } currentValueLabel: {
-                    Text("\(currentHoursPerDay, specifier: "%.1f") h")
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
-                }
-                .onChange(of: currentHoursPerDay) { _, _ in
-                    if let index = activityVM.activities.firstIndex(where: { $0.name.lowercased() == currentActivity.name.lowercased() }) {
-                        activityVM.activities[index].hoursPerDay = currentHoursPerDay
+                LabeledContent("Hours") {
+                    Slider(
+                        value: $currentHoursPerDay,
+                        in: 0 ... maxHoursOfSelected,
+                        step: 0.5
+                    ) {
+                        Text("Hours for \(currentActivity.name)")
+                    } currentValueLabel: {
+                        Text("\(currentHoursPerDay, specifier: "%.1f") h")
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                    }
+                    .onChange(of: currentHoursPerDay) { _, _ in
+                        if let index = activityVM.activities.firstIndex(where: { $0.name.lowercased() == currentActivity.name.lowercased() }) {
+                            activityVM.activities[index].hoursPerDay = currentHoursPerDay
+                        }
                     }
                 }
             }
