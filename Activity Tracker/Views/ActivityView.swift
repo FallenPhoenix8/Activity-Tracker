@@ -14,10 +14,13 @@ struct ActivityView: View {
 
     // MARK: - Data Initialization
 
-    @Query(sort: \ActivityModel.name, order: .forward)
-    var activities: [ActivityModel]
+    @Environment(\.modelContext) private var modelContext
+    @State private var activityVM: ActivityViewModel
 
-    @Environment(\.modelContext) private var context
+    init() {
+        let activityVM = ActivityViewModel(modelContext: modelContext)
+        _activityVM = State(initialValue: activityVM)
+    }
 
     // MARK: - State
 
@@ -30,7 +33,7 @@ struct ActivityView: View {
 
     // Should not be more than 24 hours
     var totalHours: Double {
-        let hours = activities.reduce(0.0) { result, next in
+        let hours = activityVM.activities.reduce(0.0) { result, next in
             result + next.hoursPerDay
         }
         return hours
@@ -53,11 +56,11 @@ struct ActivityView: View {
     // MARK: - Activity Chart
 
     var body: some View {
-        if activities.isEmpty {
+        if activityVM.activities.isEmpty {
             ContentUnavailableView("Enter an Activity", systemImage: "list.dash")
         } else {
             Chart {
-                ForEach(activities) { activity in
+                ForEach(activityVM.activities) { activity in
                     SectorMark(
                         angle: .value("Activites", activity.hoursPerDay),
                         innerRadius: innerRadius,
@@ -69,7 +72,7 @@ struct ActivityView: View {
             .chartAngleSelection(value: $selectCount)
         }
         List {
-            ForEach(activities) { activity in
+            ForEach(activityVM.activities) { activity in
                 ActivityRow(activity: activity)
                     .contentShape(Rectangle())
                     .listRowBackground(currentActivity?.name == activity.name ? AppTheme.activeRowBackground : AppTheme.clearRowBackground)
@@ -79,7 +82,9 @@ struct ActivityView: View {
                         }
                     }
             }
-            .onDelete(perform: deleteActivity)
+            .onDelete { indexSet in
+                _ = activityVM.delete(at: indexSet)
+            }
         }
         .listStyle(.plain)
         .scrollIndicators(.hidden)
@@ -93,38 +98,26 @@ struct ActivityView: View {
         if let currentActivity {
             Slider(value: $currentHoursPerDay, in: 0 ... maxHoursOfSelected, step: hoursPerDayStep)
                 .onChange(of: currentHoursPerDay) { _, newValue in
-                    if let index = activities.firstIndex(where: {$0.name == currentActivity.name}) {
-                        activities[index].hoursPerDay = newValue
+                    if let index = activityVM.activities.firstIndex(where: { $0.name == currentActivity.name }) {
+                        activityVM.activities[index].hoursPerDay = newValue
                     }
                 }
         }
 
         Button("Add") {
-            addActivity()
+            let newActivity = activityVM.add(name: newName, hoursPerDay: currentHoursPerDay)
+            newName = ""
+            guard let newActivity else {
+                print("Invalid name")
+                return
+            }
+
+            currentActivity = newActivity
         }
         .buttonStyle(.borderedProminent)
         .disabled(remainingHours <= 0)
     }
-
-    private func addActivity() {
-        // Check validity
-        let isRepeated = activities.contains(where: { $0.name.lowercased() == newName.lowercased() })
-
-        if newName.count <= 2 || isRepeated {
-            return
-        }
-
-        let activity = ActivityModel(name: newName, hoursPerDay: currentHoursPerDay)
-        context.insert(activity)
-
-        // Reset
-        newName = ""
-        currentActivity = activity
-    }
-
-    private func deleteActivity(at offsets: IndexSet) {
-        // TODO: Implement
-    }
+    
 }
 
 #Preview {
