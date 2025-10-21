@@ -1,9 +1,9 @@
-// 
+//
 //  Activity_TrackerApp.swift
 //  Activity Tracker
 //
-    
 
+import SwiftData
 import SwiftUI
 
 @main
@@ -12,5 +12,6 @@ struct Activity_TrackerApp: App {
         WindowGroup {
             ContentView()
         }
+        .modelContainer(for: ActivityModel.self)
     }
 }
