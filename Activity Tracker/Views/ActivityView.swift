@@ -11,6 +11,7 @@ struct ActivityView: View {
     // MARK: - Constants
 
     let hoursPerDayStep: Double = 0.2
+
     // MARK: - Data Initialization
 
     @Query(sort: \ActivityModel.name, order: .forward)
@@ -67,15 +68,18 @@ struct ActivityView: View {
             }
             .chartAngleSelection(value: $selectCount)
         }
-        List(activities) { activity in
-            ActivityRow(activity: activity)
-                .contentShape(Rectangle())
-                .listRowBackground(currentActivity?.name == activity.name ? AppTheme.activeRowBackground : AppTheme.clearRowBackground)
-                .onTapGesture {
-                    withAnimation {
-                        currentActivity = activity
+        List {
+            ForEach(activities) { activity in
+                ActivityRow(activity: activity)
+                    .contentShape(Rectangle())
+                    .listRowBackground(currentActivity?.name == activity.name ? AppTheme.activeRowBackground : AppTheme.clearRowBackground)
+                    .onTapGesture {
+                        withAnimation {
+                            currentActivity = activity
+                        }
                     }
-                }
+            }
+            .onDelete(perform: deleteActivity)
         }
         .listStyle(.plain)
         .scrollIndicators(.hidden)
