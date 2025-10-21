@@ -71,6 +71,18 @@ struct ActivityView: View {
                     }
                 }
                 .chartAngleSelection(value: $selectCount)
+                .chartBackground { _ in
+                    VStack {
+                        if let currentActivity {
+                            Image(systemName: "figure.walk")
+                                .imageScale(.large)
+                                .foregroundStyle(AppTheme.activeFillStyle)
+
+                            let truncatedName = String(currentActivity.name.prefix(11))
+                            Text(truncatedName == currentActivity.name ? truncatedName : "\(truncatedName)...")
+                        }
+                    }
+                }
             }
             List {
                 ForEach(activityVM.activities) { activity in
@@ -154,6 +166,8 @@ struct ActivityView: View {
 
 #Preview {
     @Previewable @Environment(\.modelContext) var modelContext
+
     ActivityView(modelContext: modelContext)
         .padding()
+        .modelContainer(for: ActivityModel.self)
 }
