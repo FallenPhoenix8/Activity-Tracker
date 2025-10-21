@@ -6,13 +6,12 @@
 import SwiftUI
 
 struct ContentView: View {
+    @Environment(\.modelContext) var modelContext
     var body: some View {
         NavigationStack {
-            VStack {
-                ActivityView()
-            }
-            .padding()
-            .navigationTitle("Activity Tracker")
+            ActivityView(modelContext: modelContext)
+                .padding()
+                .navigationTitle("Activity Tracker")
         }
     }
 }

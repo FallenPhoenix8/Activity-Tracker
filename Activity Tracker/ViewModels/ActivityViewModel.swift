@@ -14,6 +14,7 @@ class ActivityViewModel {
 
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
+        fetchData()
     }
 
     func fetchData() {
@@ -27,6 +28,7 @@ class ActivityViewModel {
 
     func add(name: String, hoursPerDay: Double) -> ActivityModel? {
         // Check validity
+        fetchData()
         let isRepeated = activities.contains(where: { $0.name.lowercased() == name.lowercased() })
         if name.count <= 2 || isRepeated {
             return nil
@@ -34,8 +36,15 @@ class ActivityViewModel {
 
         let activity = ActivityModel(name: name, hoursPerDay: hoursPerDay)
         modelContext.insert(activity)
+        activities.append(activity)
         return activity
     }
 
-    func delete(at offsets: IndexSet) -> ActivityModel? { nil /* TODO: IMPLEMENT */ }
+    func delete(at offsets: IndexSet) {
+        for index in offsets {
+            let activity = activities[index]
+            modelContext.delete(activity)
+            activities = activities.filter { $0 != activity }
+        }
+    }
 }

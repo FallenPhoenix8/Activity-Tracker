@@ -8,16 +8,11 @@ import SwiftData
 import SwiftUI
 
 struct ActivityView: View {
-    // MARK: - Constants
-
-    let hoursPerDayStep: Double = 0.2
-
     // MARK: - Data Initialization
 
-    @Environment(\.modelContext) private var modelContext
     @State private var activityVM: ActivityViewModel
 
-    init() {
+    init(modelContext: ModelContext) {
         let activityVM = ActivityViewModel(modelContext: modelContext)
         _activityVM = State(initialValue: activityVM)
     }
@@ -56,71 +51,94 @@ struct ActivityView: View {
     // MARK: - Activity Chart
 
     var body: some View {
-        if activityVM.activities.isEmpty {
-            ContentUnavailableView("Enter an Activity", systemImage: "list.dash")
-        } else {
-            Chart {
+        VStack {
+            if activityVM.activities.isEmpty {
+                ContentUnavailableView("Enter an Activity", systemImage: "list.dash")
+            } else {
+                Chart {
+                    ForEach(activityVM.activities) { activity in
+                        SectorMark(
+                            angle: .value("Activites", activity.hoursPerDay),
+                            innerRadius: innerRadius,
+                            outerRadius: outerRadius,
+                            angularInset: angularInset
+                        )
+                    }
+                }
+                .chartAngleSelection(value: $selectCount)
+            }
+            List {
                 ForEach(activityVM.activities) { activity in
-                    SectorMark(
-                        angle: .value("Activites", activity.hoursPerDay),
-                        innerRadius: innerRadius,
-                        outerRadius: outerRadius,
-                        angularInset: angularInset
-                    )
-                }
-            }
-            .chartAngleSelection(value: $selectCount)
-        }
-        List {
-            ForEach(activityVM.activities) { activity in
-                ActivityRow(activity: activity)
-                    .contentShape(Rectangle())
-                    .listRowBackground(currentActivity?.name == activity.name ? AppTheme.activeRowBackground : AppTheme.clearRowBackground)
-                    .onTapGesture {
-                        withAnimation {
-                            currentActivity = activity
+                    ActivityRow(activity: activity)
+                        .contentShape(Rectangle())
+                        .listRowBackground(currentActivity?.name == activity.name ? AppTheme.activeRowBackground : AppTheme.clearRowBackground)
+                        .onTapGesture {
+                            withAnimation {
+                                currentActivity = activity
+                            }
                         }
-                    }
+                }
+                .onDelete { indexSet in
+                    activityVM.delete(at: indexSet)
+                }
             }
-            .onDelete { indexSet in
-                _ = activityVM.delete(at: indexSet)
-            }
-        }
-        .listStyle(.plain)
-        .scrollIndicators(.hidden)
+            .listStyle(.plain)
+            .scrollIndicators(.hidden)
 
-        TextField("Enter new activity", text: $newName)
-            .padding()
-            .background(AppTheme.activeFillStyle)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-            .shadow(color: .gray, radius: 2, x: 0, y: 2)
+            TextField("Enter new activity", text: $newName)
+                .padding()
+                .background(AppTheme.activeFillStyle)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .shadow(color: .gray, radius: 2, x: 0, y: 2)
 
-        if let currentActivity {
-            Slider(value: $currentHoursPerDay, in: 0 ... maxHoursOfSelected, step: hoursPerDayStep)
+            if let currentActivity {
+                Slider(
+                    value: $currentHoursPerDay,
+                    in: 0 ... maxHoursOfSelected,
+                    step: 0.5
+                ) {
+                    Text("Hours for \(currentActivity.name)")
+                } currentValueLabel: {
+                    Text("\(currentHoursPerDay, specifier: "%.1f") h")
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                }
                 .onChange(of: currentHoursPerDay) { _, newValue in
-                    if let index = activityVM.activities.firstIndex(where: { $0.name == currentActivity.name }) {
-                        activityVM.activities[index].hoursPerDay = newValue
+                    if let index = activityVM.activities.firstIndex(where: { $0.name.lowercased() == currentActivity.name.lowercased() }) {
+                        activityVM.activities[index].hoursPerDay = currentHoursPerDay
                     }
                 }
-        }
-
-        Button("Add") {
-            let newActivity = activityVM.add(name: newName, hoursPerDay: currentHoursPerDay)
-            newName = ""
-            guard let newActivity else {
-                print("Invalid name")
-                return
             }
 
-            currentActivity = newActivity
+            Button("Add") {
+                let newActivity = activityVM.add(name: newName, hoursPerDay: currentHoursPerDay)
+                newName = ""
+                guard let newActivity else {
+                    print("Invalid name")
+                    return
+                }
+
+                currentActivity = newActivity
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(remainingHours <= 0)
         }
-        .buttonStyle(.borderedProminent)
-        .disabled(remainingHours <= 0)
+        .toolbar {
+            EditButton()
+                .onChange(of: selectCount) { _, newValue in
+                    guard let newValue else { return }
+                    withAnimation {}
+                }
+        }
     }
-    
+
+    private func getSelected(value: Int) {
+        // TODO: implement
+    }
 }
 
 #Preview {
-    ActivityView()
+    @Previewable @Environment(\.modelContext) var modelContext
+    ActivityView(modelContext: modelContext)
         .padding()
 }
