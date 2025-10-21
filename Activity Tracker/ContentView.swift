@@ -11,6 +11,7 @@ struct ContentView: View {
             VStack {
                 ActivityView()
             }
+            .padding()
             .navigationTitle("Activity Tracker")
         }
     }
