@@ -19,10 +19,10 @@ struct ActivityView: View {
 
     // MARK: - State
 
-    @State private var newName: String = ""
     @State private var currentHoursPerDay: Double = 0
-    @State private var currentActivity: ActivityModel? = nil
-    @State private var selectCount: Int? = nil
+    @State var currentActivity: ActivityModel? = nil
+    @State var selectCount: Int? = nil
+    @State var isPresentedAddView = false
 
     // MARK: - Computed Properties
 
@@ -69,56 +69,36 @@ struct ActivityView: View {
             .listStyle(.plain)
             .scrollIndicators(.hidden)
 
-            TextField("Enter new activity", text: $newName)
-                .padding()
-                .background(AppTheme.activeFillStyle)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-                .shadow(color: .gray, radius: 2, x: 0, y: 2)
-
-            if let currentActivity {
-                LabeledContent("Hours") {
-                    Slider(
-                        value: $currentHoursPerDay,
-                        in: 0 ... maxHoursOfSelected,
-                        step: 0.5
-                    ) {
-                        Text("Hours for \(currentActivity.name)")
-                    } currentValueLabel: {
-                        Text("\(currentHoursPerDay, specifier: "%.1f") h")
-                            .monospacedDigit()
-                            .foregroundStyle(.secondary)
-                    }
-                    .onChange(of: currentHoursPerDay) { _, _ in
-                        if let index = activityVM.activities.firstIndex(where: { $0.name.lowercased() == currentActivity.name.lowercased() }) {
-                            activityVM.activities[index].hoursPerDay = currentHoursPerDay
-                        }
-                    }
-                }
-            }
-
-            Button("Add") {
-                let newActivity = activityVM.add(name: newName, hoursPerDay: 0)
-                currentHoursPerDay = 0
-                newName = ""
-                guard let newActivity else {
-                    print("Invalid name")
-                    currentActivity = newActivity
-                    return
-                }
-
-                currentActivity = newActivity
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(remainingHours <= 0)
+            HoursSlider(
+                currentActivity: currentActivity,
+                maxHoursOfSelected: maxHoursOfSelected,
+                onUpdateHours: onUpdateHours,
+                currentHoursPerDay: $currentHoursPerDay
+            )
         }
         .toolbar {
-            EditButton()
-                .onChange(of: selectCount) { _, newValue in
-                    guard let newValue else { return }
-                    withAnimation {
-                        getSelected(value: newValue)
+            ToolbarItem {
+                EditButton()
+                    .onChange(of: selectCount) { _, newValue in
+                        guard let newValue else { return }
+                        withAnimation {
+                            getSelected(value: newValue)
+                        }
                     }
+            }
+
+            ToolbarItem {
+                Button("Add", systemImage: "plus") {
+                    isPresentedAddView = true
                 }
+                .sheet(isPresented: $isPresentedAddView) {
+                    ActivityAddView(
+                        maxHoursOfSelected: maxHoursOfSelected, remainingHours: remainingHours, currentActivity: currentActivity, onAddActivity: onAddActivity, onUpdateHours: {
+                            onUpdateHours()
+                        }, currentHoursPerDay: $currentHoursPerDay,
+                    )
+                }
+            }
         }
     }
 
@@ -130,6 +110,24 @@ struct ActivityView: View {
             return Int(cumulativeTotal) >= value
         })
         currentActivity = activity
+    }
+
+    private func onUpdateHours() {
+        if let index = activityVM.activities.firstIndex(where: { $0.name.lowercased() == currentActivity?.name.lowercased() }) {
+            activityVM.activities[index].hoursPerDay = currentHoursPerDay
+        }
+    }
+
+    private func onAddActivity(name: String) {
+        let newActivity = activityVM.add(name: name, hoursPerDay: 0)
+        currentHoursPerDay = 0
+        guard let newActivity else {
+            print("Invalid name")
+            currentActivity = newActivity
+            return
+        }
+
+        currentActivity = newActivity
     }
 }
 
